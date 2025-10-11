@@ -8,8 +8,19 @@ namespace NaderiteCustomScripts
     public class SnapSettings
     {
         public ScrollRect scrollRect;
-        public bool isMirror;
-        public float distanceForSnapping = 100;
+        [Min(0.1f)] public float distanceForSnapping = 100;
+        [Min(0.1f)] public float snapSensitivity = 10;
         [Range(0.1f, 3)] public float snappingSpeed = 1;
+
+        public bool HasScrollRect()
+        {
+            if (scrollRect)
+            {
+                return true;
+            }
+
+            Debug.LogWarning("Scroll rect is null. Please set an reference in inspector to use snapping!");
+            return false;
+        }
     }
 }

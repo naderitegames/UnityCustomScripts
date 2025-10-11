@@ -8,10 +8,9 @@ namespace NaderiteCustomScripts
     public class WavyVerticalLayoutGroupEditor : HorizontalOrVerticalLayoutGroupEditor
     {
         private SerializedProperty _waveCurve;
-        private SerializedProperty _intensity;
         private SerializedProperty _targetDistance;
+        private SerializedProperty _intensity;
         private SerializedProperty _offset;
-        private SerializedProperty _isMirror;
         private SerializedProperty _snap;
         private SerializedProperty _snapSettings;
         private WavyVerticalLayoutGroup _target;
@@ -20,10 +19,9 @@ namespace NaderiteCustomScripts
         {
             base.OnEnable();
             _waveCurve = serializedObject.FindProperty("waveCurve");
-            _intensity = serializedObject.FindProperty("intensity");
             _targetDistance = serializedObject.FindProperty("targetDistance");
+            _intensity = serializedObject.FindProperty("intensity");
             _offset = serializedObject.FindProperty("offset");
-            _isMirror = serializedObject.FindProperty("isMirror");
             _snap = serializedObject.FindProperty("snap");
             _snapSettings = serializedObject.FindProperty("snapSettings");
             _target = target as WavyVerticalLayoutGroup;
@@ -38,10 +36,9 @@ namespace NaderiteCustomScripts
 
             serializedObject.Update();
             EditorGUILayout.PropertyField(_waveCurve);
-            EditorGUILayout.PropertyField(_intensity);
             EditorGUILayout.PropertyField(_targetDistance);
+            EditorGUILayout.PropertyField(_intensity);
             EditorGUILayout.PropertyField(_offset);
-            EditorGUILayout.PropertyField(_isMirror);
             EditorGUILayout.PropertyField(_snap);
             if (_target.IsSnap)
             {

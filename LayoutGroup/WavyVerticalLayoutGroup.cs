@@ -7,12 +7,14 @@ namespace NaderiteCustomScripts
     public class WavyVerticalLayoutGroup : VerticalLayoutGroup
     {
         [SerializeField] private AnimationCurve waveCurve = AnimationCurve.Linear(0, 0, 1, 1);
+        [SerializeField] private int targetDistance;
         [SerializeField] private float intensity = 1;
         [SerializeField] private Vector2 offset;
-        [SerializeField] private int targetDistance;
+        [SerializeField] private bool isMirror;
         public bool IsSnap => snap;
         [SerializeField] private bool snap;
         [SerializeField] private SnapSettings snapSettings;
+
         private RectTransform _nearestObject;
         private float _lastNearDistance;
         private Vector3 _center;
@@ -21,7 +23,7 @@ namespace NaderiteCustomScripts
         {
             base.OnEnable();
             if (!snap) return;
-            if (snapSettings.scrollRect)
+            if (snapSettings.HasScrollRect())
                 snapSettings.scrollRect.onValueChanged.AddListener(OnScrollValueChanged);
         }
 
@@ -29,7 +31,7 @@ namespace NaderiteCustomScripts
         {
             base.OnDisable();
             if (!snap) return;
-            if (snapSettings.scrollRect)
+            if (snapSettings.HasScrollRect())
                 snapSettings.scrollRect.onValueChanged.RemoveListener(OnScrollValueChanged);
         }
 
@@ -68,7 +70,7 @@ namespace NaderiteCustomScripts
                 var distance = (child.position - _center).y;
                 float curveTime;
                 float distanceLerpFactor = Mathf.Abs(distance / targetDistance);
-                if (snapSettings.isMirror)
+                if (isMirror)
                     curveTime = Mathf.Lerp(0, 1, distanceLerpFactor);
                 else
                 {
@@ -77,7 +79,7 @@ namespace NaderiteCustomScripts
                         : Mathf.Lerp(0.5f, 0f, distanceLerpFactor);
                 }
 
-                var curveAmount = waveCurve.Evaluate(curveTime) * (intensity * 10);
+                var curveAmount = waveCurve.Evaluate(curveTime) * (intensity * snapSettings.snapSensitivity);
                 var newPos = child.position;
                 newPos.x += curveAmount + offset.x;
                 newPos.y += offset.y;
@@ -101,7 +103,7 @@ namespace NaderiteCustomScripts
         {
             base.Update();
             if (!snap) return;
-            if (!snapSettings.scrollRect) return;
+            if (!snapSettings.HasScrollRect()) return;
             if (!_nearestObject) return;
             if (Mathf.Abs(_lastNearDistance) < snapSettings.distanceForSnapping) return;
             if (Mathf.Abs(snapSettings.scrollRect.velocity.y) > 10f) return;
@@ -112,18 +114,7 @@ namespace NaderiteCustomScripts
             if (_center.y > _nearestObject.position.y)
                 snapSettings.scrollRect.normalizedPosition += Vector2.down * speed;
             else if (_center.y < _nearestObject.position.y)
-            {
                 snapSettings.scrollRect.normalizedPosition -= Vector2.down * speed;
-            }
-        }
-
-        Vector2 GetCenterPointInCurve()
-        {
-            Vector2 center = transform.parent ? transform.parent.position : transform.position;
-            var c = center + offset;
-            c.x += waveCurve.Evaluate(snapSettings.isMirror ? 0 : 0.5f) * (intensity * 10);
-
-            return c;
         }
     }
 }
