@@ -7,6 +7,8 @@ namespace NaderiteCustomScripts
     public class WavyVerticalLayoutGroup : VerticalLayoutGroup
     {
         [SerializeField] private AnimationCurve waveCurve = AnimationCurve.Linear(0, 0, 1, 1);
+        [SerializeField, Min(1)] private float waveLoop;
+        [SerializeField] private bool applyWaveToAll;
         [SerializeField] private int targetDistance;
         [SerializeField] private float intensity = 1;
         [SerializeField] private Vector2 offset;
@@ -79,7 +81,7 @@ namespace NaderiteCustomScripts
                         : Mathf.Lerp(0.5f, 0f, distanceLerpFactor);
                 }
 
-                var curveAmount = waveCurve.Evaluate(curveTime) * (intensity * snapSettings.snapSensitivity);
+                var curveAmount = waveCurve.Evaluate(curveTime) * (intensity * 10);
                 var newPos = child.position;
                 newPos.x += curveAmount + offset.x;
                 newPos.y += offset.y;
@@ -106,7 +108,7 @@ namespace NaderiteCustomScripts
             if (!snapSettings.HasScrollRect()) return;
             if (!_nearestObject) return;
             if (Mathf.Abs(_lastNearDistance) < snapSettings.distanceForSnapping) return;
-            if (Mathf.Abs(snapSettings.scrollRect.velocity.y) > 10f) return;
+            if (Mathf.Abs(snapSettings.scrollRect.velocity.y) > snapSettings.snapSensitivity) return;
             var nearestDistance1 = Vector2.Distance(_nearestObject.position, _center);
             if (nearestDistance1 <= 0.1f) return;
             var speed = (Time.deltaTime * Mathf.Lerp(0, 1, nearestDistance1 / snapSettings.distanceForSnapping)) *

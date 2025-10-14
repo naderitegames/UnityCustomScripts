@@ -11,6 +11,7 @@ namespace NaderiteCustomScripts
         private SerializedProperty _targetDistance;
         private SerializedProperty _intensity;
         private SerializedProperty _offset;
+        private SerializedProperty _isMirror;
         private SerializedProperty _snap;
         private SerializedProperty _snapSettings;
         private WavyVerticalLayoutGroup _target;
@@ -22,6 +23,7 @@ namespace NaderiteCustomScripts
             _targetDistance = serializedObject.FindProperty("targetDistance");
             _intensity = serializedObject.FindProperty("intensity");
             _offset = serializedObject.FindProperty("offset");
+            _isMirror = serializedObject.FindProperty("isMirror");
             _snap = serializedObject.FindProperty("snap");
             _snapSettings = serializedObject.FindProperty("snapSettings");
             _target = target as WavyVerticalLayoutGroup;
@@ -39,6 +41,7 @@ namespace NaderiteCustomScripts
             EditorGUILayout.PropertyField(_targetDistance);
             EditorGUILayout.PropertyField(_intensity);
             EditorGUILayout.PropertyField(_offset);
+            EditorGUILayout.PropertyField(_isMirror);
             EditorGUILayout.PropertyField(_snap);
             if (_target.IsSnap)
             {
