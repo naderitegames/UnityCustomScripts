@@ -1,33 +1,42 @@
+using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace NaderiteCustomScripts
 {
+    public enum WaveTargetPivot
+    {
+        Parent,
+        Custom
+    }
+
+    public enum WaveApplyMode
+    {
+        Solid,
+        ByDistance
+    }
+
     [ExecuteInEditMode]
     public class WavyVerticalLayoutGroup : VerticalLayoutGroup
     {
-        [SerializeField] private bool useWave;
-        public bool UseWave => useWave;
-        [SerializeField] private AnimationCurve waveCurve = AnimationCurve.Linear(0, 0, 1, 1);
-        [SerializeField, Min(1)] private float loopCount;
-        [SerializeField] private bool applyWaveToAll;
-        public bool ApplyWaveToAll => applyWaveToAll;
-        [SerializeField] private int targetDistance;
-        [SerializeField] private float intensity = 1;
+        public WaveApplyMode WaveApplyMode => waveApplyMode;
+        public WaveTargetPivot PivotType => targetPivot;
 
-        [FormerlySerializedAs("offset"), SerializeField]
-        private Vector2 positionOffset = Vector2.zero;
+        public bool IsSnap => snap;
 
         //[SerializeField, Range(0, 1f)] private float waveOffset;
-        [SerializeField] private bool isMirror;
-        public bool IsSnap => snap;
+        [SerializeField] private WaveSettings waveSettings;
+        [SerializeField] private Vector2 positionOffset = Vector2.zero;
+        [SerializeField] WaveTargetPivot targetPivot = WaveTargetPivot.Parent;
+        [SerializeField] private Transform targetPivotTransform;
+        [SerializeField] WaveApplyMode waveApplyMode = WaveApplyMode.ByDistance;
+        [SerializeField] private int targetDistance;
         [SerializeField] private bool snap;
         [SerializeField] private SnapSettings snapSettings;
-
         private RectTransform _nearestObject;
         private float _lastNearDistance;
         private Vector3 _center;
+        private float _curveTime;
 
         protected override void OnEnable()
         {
@@ -74,60 +83,59 @@ namespace NaderiteCustomScripts
         {
             if (rectChildren.Count == 0) return;
             PrepareForWave();
-
-            if (applyWaveToAll)
+            switch (WaveApplyMode)
             {
-                var loopArea = rectChildren.Count / loopCount;
-                for (var index = 0; index < rectChildren.Count; index++)
-                {
-                    var child = rectChildren[index];
-                    if (child == null) continue;
-                    
-                    float curveTime;
-                    if (isMirror)
+                case WaveApplyMode.Solid:
+                    var loopArea = rectChildren.Count / waveSettings.loopCount;
+                    for (var index = 0; index < rectChildren.Count; index++)
                     {
-                        curveTime = Mathf.Lerp(-1, 1, index / loopArea % 1);
-                        curveTime = Mathf.Abs(curveTime);
-                    }
-                    else
-                    {
-                        curveTime = Mathf.Lerp(0, 1, index / loopArea % 1);
+                        var child = rectChildren[index];
+                        if (child == null) continue;
+                        if (waveSettings.isMirror)
+                        {
+                            _curveTime = Mathf.Lerp(-1, 1, index / loopArea % 1);
+                            _curveTime = Mathf.Abs(_curveTime);
+                        }
+                        else
+                            _curveTime = Mathf.Lerp(0, 1, index / loopArea % 1);
+
+                        UpdatePositionFor(child, _curveTime);
                     }
 
-                    UpdatePositionFor(child, curveTime);
-                }
-            }
-            else
-            {
-                foreach (var child in rectChildren)
-                {
-                    if (child == null) continue;
-                    
-                    var distance = (child.position - _center).y;
-                    float curveTime;
-                    float distanceLerpFactor = Mathf.Abs(distance / targetDistance);
-                    if (isMirror)
-                        curveTime = Mathf.Lerp(0, 1, distanceLerpFactor);
-                    else
+                    break;
+                case WaveApplyMode.ByDistance:
+                    foreach (var child in rectChildren)
                     {
-                        curveTime = distance >= 0
-                            ? Mathf.Lerp(0.5f, 1, distanceLerpFactor)
-                            : Mathf.Lerp(0.5f, 0f, distanceLerpFactor);
-                    }
+                        if (child == null) continue;
 
-                    UpdatePositionFor(child, curveTime);
-                    if (snap && Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))
-                    {
+                        var distance = (child.position - _center).y;
+
+                        var distanceLerpFactor = Mathf.Abs(distance / targetDistance);
+                        if (waveSettings.isMirror)
+                        {
+                            _curveTime = Mathf.Lerp(1, 0, distanceLerpFactor);
+                        }
+                        else
+                        {
+                            _curveTime = distance >= 0
+                                ? Mathf.Lerp(0.5f, 1, distanceLerpFactor)
+                                : Mathf.Lerp(0.5f, 0f, distanceLerpFactor);
+                        }
+
+
+                        UpdatePositionFor(child, _curveTime);
+                        if (!snap || !(Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))) continue;
                         _lastNearDistance = distance;
                         _nearestObject = child;
                     }
-                }
+
+                    break;
             }
         }
-        
+
         void UpdatePositionFor(Transform child, float curveTime)
         {
-            var curveAmount = waveCurve.Evaluate(curveTime) * (intensity * 10);
+            var curveAmount = waveSettings.waveCurve.Evaluate(curveTime) * (waveSettings.intensity * 10);
             var newPos = child.position;
             newPos.x += curveAmount + positionOffset.x;
             newPos.y += positionOffset.y;
@@ -136,9 +144,27 @@ namespace NaderiteCustomScripts
 
         void PrepareForWave()
         {
-            _center = transform.parent ? transform.parent.position : transform.position;
+            _center = GetTargetPivot();
             _lastNearDistance = Mathf.Infinity;
             _nearestObject = null;
+        }
+
+        Vector3 GetTargetPivot()
+        {
+            switch (targetPivot)
+            {
+                case WaveTargetPivot.Parent when transform.parent:
+                    return transform.parent.position;
+                case WaveTargetPivot.Parent:
+                    Debug.LogWarning("No parents found", this);
+                    return transform.position;
+                case WaveTargetPivot.Custom when targetPivotTransform:
+                    return targetPivotTransform.position;
+                default:
+                case WaveTargetPivot.Custom:
+                    Debug.LogWarning("Target pivot game object is null", this);
+                    return transform.position;
+            }
         }
 
         protected override void Update()
