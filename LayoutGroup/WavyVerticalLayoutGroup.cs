@@ -20,7 +20,6 @@ namespace NaderiteCustomScripts
         [SerializeField] WaveTargetPivot targetPivot = WaveTargetPivot.Parent;
         [SerializeField] private Transform targetPivotTransform;
         [SerializeField] private float targetDistance;
-        [SerializeField] private float TargetDistance => targetDistance * 0.5f;
         [SerializeField] private bool snap;
         [SerializeField] private SnapSettings snapSettings;
         private RectTransform _nearestObject;
@@ -78,19 +77,19 @@ namespace NaderiteCustomScripts
                 if (child == null) continue;
 
                 var distance = (child.position - _center).y;
-                var loopAmount = ((targetDistance * 2) / waveSettings.LoopCount);
-                var distanceLerpFactor = (distance / (targetDistance * 2)) % loopAmount;
+                var loopAmount = ((targetDistance) / waveSettings.LoopCount);
+                var distanceLerpFactor = (distance / (targetDistance)) % loopAmount;
                 if (waveSettings.IsMirror)
                 {
                     _curveTime = Mathf.Lerp(-waveSettings.LoopCount, waveSettings.LoopCount, distanceLerpFactor);
-                    _curveTime = Mathf.Abs(_curveTime) + waveSettings.WaveOffset;
+                    _curveTime = Mathf.Abs(_curveTime);
                 }
                 else
                 {
                     _curveTime = Mathf.Lerp(waveSettings.LoopCount, 0, distanceLerpFactor);
                 }
 
-                UpdatePositionFor(child, (_curveTime) % 1);
+                UpdatePositionFor(child, (_curveTime + waveSettings.WaveOffset) % 1);
                 if (!snap || !(Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))) continue;
                 _lastNearDistance = distance;
                 _nearestObject = child;
@@ -134,7 +133,7 @@ namespace NaderiteCustomScripts
                     break;
             }
 
-            center.y -= targetDistance;
+            center.y -= targetDistance * 0.5f;
             return center;
         }
 
