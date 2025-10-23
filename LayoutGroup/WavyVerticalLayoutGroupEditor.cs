@@ -1,14 +1,13 @@
-﻿using UnityEditor;
+﻿#if UNITY_EDITOR
+using UnityEditor;
 using UnityEditor.UI;
 
 namespace NaderiteCustomScripts
 {
-#if UNITY_EDITOR
     [CustomEditor(typeof(WavyVerticalLayoutGroup))]
     public class WavyVerticalLayoutGroupEditor : HorizontalOrVerticalLayoutGroupEditor
     {
         private SerializedProperty _waveSettings;
-        private SerializedProperty _waveApplyMode;
         private SerializedProperty _targetPivot;
         private SerializedProperty _targetPivotTransform;
         private SerializedProperty _targetDistance;
@@ -24,12 +23,10 @@ namespace NaderiteCustomScripts
         {
             base.OnEnable();
             _waveSettings = serializedObject.FindProperty("waveSettings");
-            _waveApplyMode = serializedObject.FindProperty("waveApplyMode");
             _targetPivot = serializedObject.FindProperty("targetPivot");
             _targetPivotTransform = serializedObject.FindProperty("targetPivotTransform");
             _targetDistance = serializedObject.FindProperty("targetDistance");
             _positionOffset = serializedObject.FindProperty("positionOffset");
-            //_waveOffset = serializedObject.FindProperty("waveOffset");
             _snap = serializedObject.FindProperty("snap");
             _snapSettings = serializedObject.FindProperty("snapSettings");
             _target = target as WavyVerticalLayoutGroup;
@@ -40,18 +37,13 @@ namespace NaderiteCustomScripts
             base.OnInspectorGUI();
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Wave Effect", EditorStyles.boldLabel);
-
             serializedObject.Update();
             EditorGUILayout.PropertyField(_waveSettings);
-            EditorGUILayout.PropertyField(_waveApplyMode);
-            if (_target.WaveApplyMode == WaveApplyMode.ByDistance)
-            {
-                EditorGUILayout.PropertyField(_targetDistance);
-                EditorGUILayout.PropertyField(_targetPivot);
-                if (_target.PivotType == WaveTargetPivot.Custom)
-                    EditorGUILayout.PropertyField(_targetPivotTransform);
-            }
+            EditorGUILayout.PropertyField(_targetDistance);
+            EditorGUILayout.PropertyField(_targetPivot);
+            if (_target.PivotType == WaveTargetPivot.Custom)
+                EditorGUILayout.PropertyField(_targetPivotTransform);
+
             EditorGUILayout.PropertyField(_positionOffset);
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(_snap);
@@ -64,5 +56,5 @@ namespace NaderiteCustomScripts
             serializedObject.ApplyModifiedProperties();
         }
     }
-#endif
 }
+#endif

@@ -10,27 +10,17 @@ namespace NaderiteCustomScripts
         Custom
     }
 
-    public enum WaveApplyMode
-    {
-        Solid,
-        ByDistance
-    }
-
     [ExecuteInEditMode]
     public class WavyVerticalLayoutGroup : VerticalLayoutGroup
     {
-        public WaveApplyMode WaveApplyMode => waveApplyMode;
         public WaveTargetPivot PivotType => targetPivot;
-
         public bool IsSnap => snap;
-
-        //[SerializeField, Range(0, 1f)] private float waveOffset;
         [SerializeField] private WaveSettings waveSettings;
         [SerializeField] private Vector2 positionOffset = Vector2.zero;
         [SerializeField] WaveTargetPivot targetPivot = WaveTargetPivot.Parent;
         [SerializeField] private Transform targetPivotTransform;
-        [SerializeField] WaveApplyMode waveApplyMode = WaveApplyMode.ByDistance;
-        [SerializeField] private int targetDistance;
+        [SerializeField] private float targetDistance;
+        [SerializeField] private float TargetDistance => targetDistance * 0.5f;
         [SerializeField] private bool snap;
         [SerializeField] private SnapSettings snapSettings;
         private RectTransform _nearestObject;
@@ -83,93 +73,73 @@ namespace NaderiteCustomScripts
         {
             if (rectChildren.Count == 0) return;
             PrepareForWave();
-            switch (WaveApplyMode)
+            foreach (var child in rectChildren)
             {
-                case WaveApplyMode.Solid:
-                    var loopArea = rectChildren.Count / waveSettings.loopCount;
-                    for (var index = 0; index < rectChildren.Count; index++)
-                    {
-                        var child = rectChildren[index];
-                        if (child == null) continue;
-                        if (waveSettings.isMirror)
-                        {
-                            _curveTime = Mathf.Lerp(-1, 1, index / loopArea % 1);
-                            _curveTime = Mathf.Abs(_curveTime);
-                        }
-                        else
-                            _curveTime = Mathf.Lerp(0, 1, index / loopArea % 1);
+                if (child == null) continue;
 
-                        UpdatePositionFor(child, _curveTime);
-                    }
+                var distance = (child.position - _center).y;
+                var loopAmount = ((targetDistance * 2) / waveSettings.LoopCount);
+                var distanceLerpFactor = (distance / (targetDistance * 2)) % loopAmount;
+                if (waveSettings.IsMirror)
+                {
+                    _curveTime = Mathf.Lerp(-waveSettings.LoopCount, waveSettings.LoopCount, distanceLerpFactor);
+                    _curveTime = Mathf.Abs(_curveTime) + waveSettings.WaveOffset;
+                }
+                else
+                {
+                    _curveTime = Mathf.Lerp(waveSettings.LoopCount, 0, distanceLerpFactor);
+                }
 
-                    break;
-                case WaveApplyMode.ByDistance:
-                    foreach (var child in rectChildren)
-                    {
-                        if (child == null) continue;
-
-                        var distance = (child.position - _center).y;
-
-                        var distanceLerpFactor = Mathf.Abs(distance / targetDistance);
-                        if (waveSettings.isMirror)
-                        {
-                            _curveTime = Mathf.Lerp(1, 0, distanceLerpFactor);
-                        }
-                        else
-                        {
-                            _curveTime = distance >= 0
-                                ? Mathf.Lerp(0.5f, 1, distanceLerpFactor)
-                                : Mathf.Lerp(0.5f, 0f, distanceLerpFactor);
-                        }
-
-
-                        UpdatePositionFor(child, _curveTime);
-                        if (!snap || !(Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))) continue;
-                        _lastNearDistance = distance;
-                        _nearestObject = child;
-                    }
-
-                    break;
+                UpdatePositionFor(child, (_curveTime) % 1);
+                if (!snap || !(Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))) continue;
+                _lastNearDistance = distance;
+                _nearestObject = child;
             }
         }
 
-        void UpdatePositionFor(Transform child, float curveTime)
+        private void UpdatePositionFor(Transform child, float curveTime)
         {
-            var curveAmount = waveSettings.waveCurve.Evaluate(curveTime) * (waveSettings.intensity * 10);
             var newPos = child.position;
-            newPos.x += curveAmount + positionOffset.x;
+            newPos.x += waveSettings.Evaluate(curveTime) + positionOffset.x;
             newPos.y += positionOffset.y;
             child.position = newPos;
         }
 
-        void PrepareForWave()
+        private void PrepareForWave()
         {
             _center = GetTargetPivot();
             _lastNearDistance = Mathf.Infinity;
             _nearestObject = null;
         }
 
-        Vector3 GetTargetPivot()
+        private Vector3 GetTargetPivot()
         {
+            Vector3 center;
             switch (targetPivot)
             {
                 case WaveTargetPivot.Parent when transform.parent:
-                    return transform.parent.position;
+                    center = transform.parent.position;
+                    break;
                 case WaveTargetPivot.Parent:
                     Debug.LogWarning("No parents found", this);
-                    return transform.position;
+                    center = transform.position;
+                    break;
                 case WaveTargetPivot.Custom when targetPivotTransform:
-                    return targetPivotTransform.position;
+                    center = targetPivotTransform.position;
+                    break;
                 default:
                 case WaveTargetPivot.Custom:
                     Debug.LogWarning("Target pivot game object is null", this);
-                    return transform.position;
+                    center = transform.position;
+                    break;
             }
+
+            center.y -= targetDistance;
+            return center;
         }
 
-        protected override void Update()
+        void LateUpdate()
         {
-            base.Update();
             if (!snap) return;
             if (!snapSettings.HasScrollRect()) return;
             if (!_nearestObject) return;
