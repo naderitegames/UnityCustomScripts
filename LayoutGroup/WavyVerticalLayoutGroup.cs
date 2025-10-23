@@ -22,6 +22,7 @@ namespace NaderiteCustomScripts
         [SerializeField] private float targetDistance;
         [SerializeField] private bool snap;
         [SerializeField] private SnapSettings snapSettings;
+        [SerializeField] private bool effectOutOfDistance = true;
         private RectTransform _nearestObject;
         private float _lastNearDistance;
         private Vector3 _center;
@@ -79,17 +80,26 @@ namespace NaderiteCustomScripts
                 var distance = (child.position - _center).y;
                 var loopAmount = ((targetDistance) / waveSettings.LoopCount);
                 var distanceLerpFactor = (distance / (targetDistance)) % loopAmount;
-                if (waveSettings.IsMirror)
+                if (distance <= targetDistance && distance >= 0)
                 {
-                    _curveTime = Mathf.Lerp(-waveSettings.LoopCount, waveSettings.LoopCount, distanceLerpFactor);
-                    _curveTime = Mathf.Abs(_curveTime);
+                    if (waveSettings.IsMirror)
+                    {
+                        _curveTime = Mathf.Lerp(-waveSettings.LoopCount, waveSettings.LoopCount, distanceLerpFactor);
+                        _curveTime = Mathf.Abs(_curveTime);
+                    }
+                    else
+                    {
+                        _curveTime = Mathf.Lerp(waveSettings.LoopCount, 0, distanceLerpFactor);
+                    }
+
+                    UpdatePositionFor(child, (_curveTime + waveSettings.WaveOffset) % 1);
                 }
-                else
+                else if (effectOutOfDistance)
                 {
-                    _curveTime = Mathf.Lerp(waveSettings.LoopCount, 0, distanceLerpFactor);
+                    UpdatePositionFor(child, (waveSettings.WaveOffset) % 1);
                 }
 
-                UpdatePositionFor(child, (_curveTime + waveSettings.WaveOffset) % 1);
+
                 if (!snap || !(Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))) continue;
                 _lastNearDistance = distance;
                 _nearestObject = child;
@@ -107,6 +117,7 @@ namespace NaderiteCustomScripts
         private void PrepareForWave()
         {
             _center = GetTargetPivot();
+            _center.y -= targetDistance * 0.5f;
             _lastNearDistance = Mathf.Infinity;
             _nearestObject = null;
         }
@@ -117,24 +128,17 @@ namespace NaderiteCustomScripts
             switch (targetPivot)
             {
                 case WaveTargetPivot.Parent when transform.parent:
-                    center = transform.parent.position;
-                    break;
+                    return transform.parent.position;
                 case WaveTargetPivot.Parent:
                     Debug.LogWarning("No parents found", this);
-                    center = transform.position;
-                    break;
+                    return transform.position;
                 case WaveTargetPivot.Custom when targetPivotTransform:
-                    center = targetPivotTransform.position;
-                    break;
+                    return targetPivotTransform.position;
                 default:
                 case WaveTargetPivot.Custom:
                     Debug.LogWarning("Target pivot game object is null", this);
-                    center = transform.position;
-                    break;
+                    return transform.position;
             }
-
-            center.y -= targetDistance * 0.5f;
-            return center;
         }
 
         void LateUpdate()
