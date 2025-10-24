@@ -20,28 +20,37 @@ namespace NaderiteCustomScripts
         [SerializeField] WaveTargetPivot targetPivot = WaveTargetPivot.Parent;
         [SerializeField] private Transform targetPivotTransform;
         [SerializeField] private float targetDistance;
+        [SerializeField] ScrollRect scrollRect;
         [SerializeField] private bool snap;
         [SerializeField] private SnapSettings snapSettings;
-        [SerializeField] private bool effectOutOfDistance = true;
+        [SerializeField] private bool affectOutOfDistance = true;
         private RectTransform _nearestObject;
         private float _lastNearDistance;
         private Vector3 _center;
         private float _curveTime;
 
+        private ScrollRect ScrollRect
+        {
+            get
+            {
+                if (!scrollRect)
+                    Debug.LogWarning("Scroll rect is null. Please set an reference in inspector to use snapping!");
+                return scrollRect;
+            }
+        }
+
         protected override void OnEnable()
         {
             base.OnEnable();
-            if (!snap) return;
-            if (snapSettings.HasScrollRect())
-                snapSettings.scrollRect.onValueChanged.AddListener(OnScrollValueChanged);
+            if (ScrollRect)
+                scrollRect.onValueChanged.AddListener(OnScrollValueChanged);
         }
 
         protected override void OnDisable()
         {
             base.OnDisable();
-            if (!snap) return;
-            if (snapSettings.HasScrollRect())
-                snapSettings.scrollRect.onValueChanged.RemoveListener(OnScrollValueChanged);
+            if (ScrollRect)
+                scrollRect.onValueChanged.RemoveListener(OnScrollValueChanged);
         }
 
         protected override void OnRectTransformDimensionsChange()
@@ -73,18 +82,20 @@ namespace NaderiteCustomScripts
         {
             if (rectChildren.Count == 0) return;
             PrepareForWave();
+            var editedCenter = _center.y - targetDistance * 0.5f;
             foreach (var child in rectChildren)
             {
                 if (child == null) continue;
 
-                var distance = (child.position - _center).y;
+                var distance = (child.position.y - _center.y);
+                var editedDistance = (child.position.y - editedCenter);
                 var loopAmount = ((targetDistance) / waveSettings.LoopCount);
-                var distanceLerpFactor = (distance / (targetDistance)) % loopAmount;
-                if (distance <= targetDistance && distance >= 0)
+                var distanceLerpFactor = (editedDistance / (targetDistance)) % loopAmount;
+                if (editedDistance <= targetDistance && editedDistance >= 0)
                 {
                     if (waveSettings.IsMirror)
                     {
-                        _curveTime = Mathf.Lerp(-waveSettings.LoopCount, waveSettings.LoopCount, distanceLerpFactor);
+                        _curveTime = Mathf.Lerp(waveSettings.LoopCount, -waveSettings.LoopCount, distanceLerpFactor);
                         _curveTime = Mathf.Abs(_curveTime);
                     }
                     else
@@ -94,15 +105,16 @@ namespace NaderiteCustomScripts
 
                     UpdatePositionFor(child, (_curveTime + waveSettings.WaveOffset) % 1);
                 }
-                else if (effectOutOfDistance)
+                else if (affectOutOfDistance)
                 {
                     UpdatePositionFor(child, (waveSettings.WaveOffset) % 1);
                 }
 
-
-                if (!snap || !(Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance))) continue;
-                _lastNearDistance = distance;
-                _nearestObject = child;
+                if (snap && (Mathf.Abs(distance) < Mathf.Abs(_lastNearDistance) + snapSettings.distanceForSnapping))
+                {
+                    _lastNearDistance = distance;
+                    _nearestObject = child;
+                }
             }
         }
 
@@ -117,14 +129,12 @@ namespace NaderiteCustomScripts
         private void PrepareForWave()
         {
             _center = GetTargetPivot();
-            _center.y -= targetDistance * 0.5f;
             _lastNearDistance = Mathf.Infinity;
             _nearestObject = null;
         }
 
-        private Vector3 GetTargetPivot()
+        public Vector3 GetTargetPivot()
         {
-            Vector3 center;
             switch (targetPivot)
             {
                 case WaveTargetPivot.Parent when transform.parent:
@@ -144,18 +154,26 @@ namespace NaderiteCustomScripts
         void LateUpdate()
         {
             if (!snap) return;
-            if (!snapSettings.HasScrollRect()) return;
+            if (!scrollRect) return;
             if (!_nearestObject) return;
             if (Mathf.Abs(_lastNearDistance) < snapSettings.distanceForSnapping) return;
-            if (Mathf.Abs(snapSettings.scrollRect.velocity.y) > snapSettings.snapSensitivity) return;
+            if (Mathf.Abs(scrollRect.velocity.y) > snapSettings.snapSensitivity) return;
             var nearestDistance1 = Vector2.Distance(_nearestObject.position, _center);
             if (nearestDistance1 <= 0.1f) return;
             var speed = Time.deltaTime * Mathf.Lerp(0, 1, nearestDistance1 / snapSettings.distanceForSnapping) *
                         (snapSettings.snappingSpeed * .1f);
-            if (_center.y > _nearestObject.position.y)
-                snapSettings.scrollRect.normalizedPosition += Vector2.down * speed;
-            else if (_center.y < _nearestObject.position.y)
-                snapSettings.scrollRect.normalizedPosition -= Vector2.down * speed;
+            if (_center.y - snapSettings.distanceForSnapping > _nearestObject.position.y)
+                scrollRect.normalizedPosition += Vector2.down * speed;
+            else if (_center.y + snapSettings.distanceForSnapping < _nearestObject.position.y)
+                scrollRect.normalizedPosition -= Vector2.down * speed;
         }
+    }
+
+    [Serializable]
+    public class SnapSettings
+    {
+        [Min(0.2f)] public float distanceForSnapping = 5;
+        [Min(0.1f)] public float snapSensitivity = 10;
+        [Range(0.1f, 2)] public float snappingSpeed = 1;
     }
 }

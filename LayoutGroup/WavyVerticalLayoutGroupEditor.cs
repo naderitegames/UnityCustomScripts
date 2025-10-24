@@ -11,7 +11,8 @@ namespace NaderiteCustomScripts
         private SerializedProperty _targetPivot;
         private SerializedProperty _targetPivotTransform;
         private SerializedProperty _targetDistance;
-        private SerializedProperty _effectOutOfDistance;
+        private SerializedProperty _scrollRect;
+        private SerializedProperty _affectOutOfDistance;
         private SerializedProperty _positionOffset;
         private SerializedProperty _snap;
         private SerializedProperty _snapSettings;
@@ -24,7 +25,8 @@ namespace NaderiteCustomScripts
             _targetPivot = serializedObject.FindProperty("targetPivot");
             _targetPivotTransform = serializedObject.FindProperty("targetPivotTransform");
             _targetDistance = serializedObject.FindProperty("targetDistance");
-            _effectOutOfDistance = serializedObject.FindProperty("effectOutOfDistance");
+            _scrollRect = serializedObject.FindProperty("scrollRect");
+            _affectOutOfDistance = serializedObject.FindProperty("affectOutOfDistance");
             _positionOffset = serializedObject.FindProperty("positionOffset");
             _snap = serializedObject.FindProperty("snap");
             _snapSettings = serializedObject.FindProperty("snapSettings");
@@ -39,7 +41,8 @@ namespace NaderiteCustomScripts
             serializedObject.Update();
             EditorGUILayout.PropertyField(_waveSettings);
             EditorGUILayout.PropertyField(_targetDistance);
-            EditorGUILayout.PropertyField(_effectOutOfDistance);
+            EditorGUILayout.PropertyField(_scrollRect);
+            EditorGUILayout.PropertyField(_affectOutOfDistance);
             EditorGUILayout.PropertyField(_targetPivot);
             if (_target.PivotType == WaveTargetPivot.Custom)
                 EditorGUILayout.PropertyField(_targetPivotTransform);
