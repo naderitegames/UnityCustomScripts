@@ -4,7 +4,7 @@ using UnityEditor.UI;
 
 namespace NaderiteCustomScripts
 {
-    [CustomEditor(typeof(WavyVerticalLayoutGroup))]
+    [CustomEditor(typeof(WavyVerticalOrHorizontalLayoutGroup), true)]
     public class WavyVerticalLayoutGroupEditor : HorizontalOrVerticalLayoutGroupEditor
     {
         private SerializedProperty _waveSettings;
@@ -16,7 +16,7 @@ namespace NaderiteCustomScripts
         private SerializedProperty _positionOffset;
         private SerializedProperty _snap;
         private SerializedProperty _snapSettings;
-        private WavyVerticalLayoutGroup _target;
+        private WavyVerticalOrHorizontalLayoutGroup _target;
 
         protected override void OnEnable()
         {
@@ -30,7 +30,7 @@ namespace NaderiteCustomScripts
             _positionOffset = serializedObject.FindProperty("positionOffset");
             _snap = serializedObject.FindProperty("snap");
             _snapSettings = serializedObject.FindProperty("snapSettings");
-            _target = target as WavyVerticalLayoutGroup;
+            _target = target as WavyVerticalOrHorizontalLayoutGroup;
         }
 
         public override void OnInspectorGUI()
